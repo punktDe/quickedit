@@ -1,22 +1,22 @@
-{namespace qick=PunktDe\Quickedit\ViewHelpers}
+{namespace be=TYPO3\CMS\Backend\ViewHelpers}
 
 <f:if condition="{config}">
     <f:render partial="QuickeditHeader" />
 
-    <div class="quickedit__container {f:if(condition: isVisible, then: 'collapse in', else: 'collapse')}" id="quick-edit" data-page="{pageId}">
+    <div class="quickedit__container {f:if(condition: isVisible, then: 'collapse show', else: 'collapse')}" id="quick-edit" data-page="{pageId}">
         <div class="quickedit__container-inner">
             <f:for each="{config}" as="editConfig">
                 <div class="quickedit__group">
                     <div class="quickedit__label">{editConfig.label}</div>
 
-                    <qick:be.editRecord table="pages" uid="{pageId}" fields="{editConfig.fields}" class="quickedit__edit-button btn btn-default">
+                    <be:link.editRecord table="pages" uid="{pageId}" fields="{editConfig.fields}" class="quickedit__edit-button btn btn-default">
                         <core:icon identifier="actions-open" size="default" />
-                    </qick:be.editRecord>
+                    </be:link.editRecord>
 
                     <f:if condition="{editConfig.previewFields}">
-                        <div class="quickedit__field-value" data-toggle="tooltip" data-title="
+                        <div class="quickedit__field-value" data-bs-toggle="tooltip" title="
                         {f:render(partial:'FieldValues', arguments:{editConfig:editConfig})}"
-                             data-html="true" data-placement="bottom">
+                             data-bs-html="true" data-bs-placement="bottom">
                             <f:translate key="LLL:EXT:quickedit/Resources/Private/Language/Backend.xlf:currentValues" />
                         </div>
                     </f:if>

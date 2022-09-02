@@ -108,7 +108,10 @@ class PageLayoutHeader
     {
         $isEnabled = true;
 
-        if ((bool)$this->backendUser->uc['disableQuickeditInPageModule']) {
+        if (
+            array_key_exists('disableQuickeditInPageModule', $this->backendUser->uc) &&
+            (bool)$this->backendUser->uc['disableQuickeditInPageModule'] === true
+        ) {
             $isEnabled = false;
         }
 

@@ -2,11 +2,11 @@
 $EM_CONF[$_EXTKEY] = [
     'title'            => 'Toolbar for editing page properties',
     'description'      => 'This extension provides a configurable toolbar for editing page properties.',
-    'version'          => '0.2.1',
+    'version'          => '1.0.0',
     'category'         => 'be',
     'constraints'      => [
         'depends'   => [
-            'typo3' => '9.5.0 - 10.4.99'
+            'typo3' => '11.5.0 - 11.5.99'
         ],
         'conflicts' => [],
         'suggests' => [],

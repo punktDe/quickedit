@@ -6,8 +6,14 @@
 Change log
 ==========
 
+Version 1.0.0
+-------------
+
+- Update extension for TYPO3 11 LTS support
+
 Version 0.2.1
 -------------
+
 - Fix missing extension icon issue (https://github.com/punktDe/quickedit/issues/7)
 - Fix missing collapse/hide icons in TYPO3 10 (https://github.com/punktDe/quickedit/issues/8)
 

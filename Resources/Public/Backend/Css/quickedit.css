@@ -15,20 +15,20 @@
 }
 
 .quickedit__label {
-    font-size: 2rem;
+    font-size: 1rem;
 }
 
 .quickedit__edit-button {
     display: inline-block;
     margin: 5px;
     border: 1px solid gray;
-    padding: .5rem;
+    padding: .25rem;
 }
 
 .quickedit__header {
     padding: 1rem;
     background-color: #eee;
-    font-size: 1.5rem;
+    font-size: 1rem;
 }
 
 .quickedit__toggle-container {
@@ -38,12 +38,12 @@
 .btn-default.quickedit__toggle-button {
     margin-top: -1px;
     border-top: none;
-    width: 4rem;
-    height: 2.5rem;
+    width: 3rem;
+    height: 2rem;
     background-image: url(../../../../../../../typo3conf/ext/quickedit/Resources/Public/Icons/angle-up-solid.svg);
     background-position: center;
     background-repeat: no-repeat;
-    background-size: 2rem 2rem;
+    background-size: 1rem 2rem;
 }
 
 .btn-default.quickedit__toggle-button.collapsed {
