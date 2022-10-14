@@ -6,10 +6,16 @@
 Change log
 ==========
 
+Version 1.0.1
+-------------
+
+- Fix php warning by accessing non existing array keys (https://github.com/punktDe/quickedit/issues/15)
+
+
 Version 1.0.0
 -------------
 
-- Update extension for TYPO3 11 LTS support
+- Update extension for TYPO3 11 LTS support (https://github.com/punktDe/quickedit/issues/6)
 
 Version 0.2.1
 -------------
