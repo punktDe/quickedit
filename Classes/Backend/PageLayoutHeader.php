@@ -165,7 +165,7 @@ class PageLayoutHeader
     {
         $configForPageType = $this->getConfigForCurrentPage();
 
-        if (is_array($configForPageType) && count($configForPageType) > 0) {
+        if (count($configForPageType) > 0) {
             foreach ($configForPageType as $key => &$singleConfig) {
                 $singleConfig['fields'] = $this->prepareFieldsList($singleConfig['fields']);
 
@@ -197,12 +197,21 @@ class PageLayoutHeader
     protected function getConfigForCurrentPage(): array
     {
         $pageTsConfig = BackendUtility::getPagesTSconfig($this->pageUid);
-        $quickeditConfig = $pageTsConfig['mod.']['web_layout.']['PageTypes.'];
         $configForPageType = [];
 
-        if (is_array($quickeditConfig) && array_key_exists($this->pageRecord['doktype'] . '.', $quickeditConfig)) {
-            $configForPageType = $quickeditConfig[$this->pageRecord['doktype'] . '.']['config.'];
-            ksort($configForPageType);
+        if (
+            array_key_exists('mod.', $pageTsConfig) &&
+            is_array($pageTsConfig['mod.']) &&
+            array_key_exists('web_layout.', $pageTsConfig['mod.']) &&
+            is_array($pageTsConfig['mod.']['web_layout.']) &&
+            array_key_exists('PageTypes.', $pageTsConfig['mod.']['web_layout.'])
+        ) {
+            $quickeditConfig = $pageTsConfig['mod.']['web_layout.']['PageTypes.'];
+
+            if (is_array($quickeditConfig) && array_key_exists($this->pageRecord['doktype'] . '.', $quickeditConfig)) {
+                $configForPageType = $quickeditConfig[$this->pageRecord['doktype'] . '.']['config.'];
+                ksort($configForPageType);
+            }
         }
 
         return $configForPageType;
