@@ -6,8 +6,14 @@
 Change log
 ==========
 
+Version 0.2.2
+-------------
+
+- Fix php warning by accessing non existing array keys (https://github.com/punktDe/quickedit/issues/15)
+
 Version 0.2.1
 -------------
+
 - Fix missing extension icon issue (https://github.com/punktDe/quickedit/issues/7)
 - Fix missing collapse/hide icons in TYPO3 10 (https://github.com/punktDe/quickedit/issues/8)
 
