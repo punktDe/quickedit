@@ -35,6 +35,10 @@
     border-top: 1px solid #bbb;
 }
 
+.quickedit__field-value {
+    cursor: pointer;
+}
+
 .btn-default.quickedit__toggle-button {
     margin-top: -1px;
     border-top: none;
@@ -48,4 +52,21 @@
 
 .btn-default.quickedit__toggle-button.collapsed {
     background-image: url(../../../../../../../typo3conf/ext/quickedit/Resources/Public/Icons/angle-down-solid.svg);
+}
+
+.quickedit-popover {
+    min-width: 250px;
+}
+
+.quickedit-popover .row {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid lightgrey;
+}
+
+.quickedit-popover .row:last-child {
+    border: none;
+}
+
+.quickedit-popover .field-label {
+    font-weight: bold;
 }

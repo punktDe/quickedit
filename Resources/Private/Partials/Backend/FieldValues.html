@@ -1,6 +1,8 @@
-<f:for each="{editConfig.fieldValues}" as="previewField">
-    <div>
-        <span>{previewField.label}:</span>&nbsp;
-        <span>{previewField.value}</span><br />
-    </div>
-</f:for>
+<div class='container'>
+    <f:for each="{editConfig.fieldValues}" as="previewField">
+        <div class='row'>
+            <div class='col field-label'>{previewField.label}:</div>
+            <div class='col'>{previewField.value}</div>
+        </div>
+    </f:for>
+</div>
