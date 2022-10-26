@@ -10,6 +10,7 @@ Version 0.2.2
 -------------
 
 - Fix php warning by accessing non existing array keys (https://github.com/punktDe/quickedit/issues/15)
+- Further code improvements
 
 Version 0.2.1
 -------------

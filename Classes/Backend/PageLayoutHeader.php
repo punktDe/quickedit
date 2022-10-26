@@ -117,12 +117,18 @@ class PageLayoutHeader
             $isEnabled = false;
         }
 
-        if ($this->backendUser->user['quickedit_disableToolbar']) {
+        if (
+            array_key_exists('quickedit_disableToolbar', $this->backendUser->user) &&
+            $this->backendUser->user['quickedit_disableToolbar']
+        ) {
             $isEnabled = false;
         }
 
         foreach ($this->backendUser->userGroups as $group) {
-            if ($group['quickedit_disableToolbar']) {
+            if (
+                array_key_exists('quickedit_disableToolbar', $group) &&
+                $group['quickedit_disableToolbar']
+            ) {
                 $isEnabled = false;
             }
         }
@@ -235,6 +241,11 @@ class PageLayoutHeader
             $fieldsArray = array_map('trim', $fieldsArray);
 
             foreach ($fieldsArray as $index => $field) {
+                if ($this->isFieldDefined($field) === false) {
+                    unset($fieldsArray[$index]);
+                    continue;
+                }
+
                 if ($this->userHasAccessToField($field) === false
                     || $this->fieldIsAvailableForLanguage($field) === false) {
                     unset($fieldsArray[$index]);
@@ -345,5 +356,16 @@ class PageLayoutHeader
         }
 
         return $isVisible;
+    }
+
+
+
+    /**
+     * @param string $field
+     * @return bool
+     */
+    protected function isFieldDefined(string $field): bool
+    {
+        return array_key_exists($field, $GLOBALS['TCA']['pages']['columns']);
     }
 }
