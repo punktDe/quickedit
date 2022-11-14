@@ -45,7 +45,7 @@ mod {
                     }
                     2 {
                         label = Special
-                        fields = slug, suergroup, hidden
+                        fields = slug, hidden, fe_group
                         previewFields = *
                     }
                 }
