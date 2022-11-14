@@ -120,12 +120,18 @@ class PageLayoutHeader
             $isEnabled = false;
         }
 
-        if ($this->backendUser->user['quickedit_disableToolbar']) {
+        if (
+            array_key_exists('quickedit_disableToolbar', $this->backendUser->user) &&
+            $this->backendUser->user['quickedit_disableToolbar']
+        ) {
             $isEnabled = false;
         }
 
         foreach ($this->backendUser->userGroups as $group) {
-            if ($group['quickedit_disableToolbar']) {
+            if (
+                array_key_exists('quickedit_disableToolbar', $group) &&
+                $group['quickedit_disableToolbar']
+            ) {
                 $isEnabled = false;
             }
         }
@@ -168,7 +174,7 @@ class PageLayoutHeader
     {
         $configForPageType = $this->getConfigForCurrentPage();
 
-        if (is_array($configForPageType) && count($configForPageType) > 0) {
+        if (count($configForPageType) > 0) {
             foreach ($configForPageType as $key => &$singleConfig) {
                 $singleConfig['fields'] = $this->prepareFieldsList($singleConfig['fields']);
 
@@ -200,12 +206,21 @@ class PageLayoutHeader
     protected function getConfigForCurrentPage(): array
     {
         $pageTsConfig = BackendUtility::getPagesTSconfig($this->pageUid);
-        $quickeditConfig = $pageTsConfig['mod.']['web_layout.']['PageTypes.'];
         $configForPageType = [];
 
-        if (is_array($quickeditConfig) && array_key_exists($this->pageRecord['doktype'] . '.', $quickeditConfig)) {
-            $configForPageType = $quickeditConfig[$this->pageRecord['doktype'] . '.']['config.'];
-            ksort($configForPageType);
+        if (
+            array_key_exists('mod.', $pageTsConfig) &&
+            is_array($pageTsConfig['mod.']) &&
+            array_key_exists('web_layout.', $pageTsConfig['mod.']) &&
+            is_array($pageTsConfig['mod.']['web_layout.']) &&
+            array_key_exists('PageTypes.', $pageTsConfig['mod.']['web_layout.'])
+        ) {
+            $quickeditConfig = $pageTsConfig['mod.']['web_layout.']['PageTypes.'];
+
+            if (is_array($quickeditConfig) && array_key_exists($this->pageRecord['doktype'] . '.', $quickeditConfig)) {
+                $configForPageType = $quickeditConfig[$this->pageRecord['doktype'] . '.']['config.'];
+                ksort($configForPageType);
+            }
         }
 
         return $configForPageType;
@@ -229,6 +244,11 @@ class PageLayoutHeader
             $fieldsArray = array_map('trim', $fieldsArray);
 
             foreach ($fieldsArray as $index => $field) {
+                if ($this->isFieldDefined($field) === false) {
+                    unset($fieldsArray[$index]);
+                    continue;
+                }
+
                 if ($this->userHasAccessToField($field) === false
                     || $this->fieldIsAvailableForLanguage($field) === false) {
                     unset($fieldsArray[$index]);
@@ -339,5 +359,16 @@ class PageLayoutHeader
         }
 
         return $isVisible;
+    }
+
+
+
+    /**
+     * @param string $field
+     * @return bool
+     */
+    protected function isFieldDefined(string $field): bool
+    {
+        return array_key_exists($field, $GLOBALS['TCA']['pages']['columns']);
     }
 }
