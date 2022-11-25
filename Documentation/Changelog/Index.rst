@@ -6,6 +6,11 @@
 Change log
 ==========
 
+Version 1.1.0
+-------------
+- Improve display of field value preview (https://github.com/punktDe/quickedit/issues/14)
+
+
 Version 1.0.1
 -------------
 
