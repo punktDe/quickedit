@@ -14,9 +14,14 @@
                     </be:link.editRecord>
 
                     <f:if condition="{editConfig.previewFields}">
-                        <div class="quickedit__field-value" data-bs-toggle="tooltip" title="
-                        {f:render(partial:'FieldValues', arguments:{editConfig:editConfig})}"
-                             data-bs-html="true" data-bs-placement="bottom">
+                        <div class="quickedit__field-value"
+                             data-bs-html="true"
+                             data-bs-placement="bottom"
+                             data-bs-trigger="hover"
+                             data-bs-toggle="popover"
+                             data-bs-content="{f:render(partial:'FieldValues', arguments:{editConfig:editConfig})}"
+                             data-bs-custom-class="quickedit-popover"
+                        >
                             <f:translate key="LLL:EXT:quickedit/Resources/Private/Language/Backend.xlf:currentValues" />
                         </div>
                     </f:if>

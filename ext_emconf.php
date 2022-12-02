@@ -2,7 +2,7 @@
 $EM_CONF[$_EXTKEY] = [
     'title'            => 'Toolbar for editing page properties',
     'description'      => 'This extension provides a configurable toolbar for editing page properties.',
-    'version'          => '1.0.1',
+    'version'          => '1.1.0',
     'category'         => 'be',
     'constraints'      => [
         'depends'   => [

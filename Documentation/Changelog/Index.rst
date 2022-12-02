@@ -6,6 +6,12 @@
 Change log
 ==========
 
+Version 1.1.0
+-------------
+- Improve display of field value preview (https://github.com/punktDe/quickedit/issues/14)
+- Update example config and known problems page (https://github.com/punktDe/quickedit/issues/20)
+
+
 Version 1.0.1
 -------------
 
