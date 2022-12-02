@@ -40,12 +40,12 @@ mod {
                 config {
                     1 {
                         label = General
-                        fields = title, subtitle
+                        fields = title, subtitle, slug
                         previewFields = title
                     }
                     2 {
                         label = Special
-                        fields = slug, hidden, fe_group
+                        fields = hidden, fe_group
                         previewFields = *
                     }
                 }
