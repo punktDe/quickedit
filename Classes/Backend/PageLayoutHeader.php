@@ -23,22 +23,22 @@ class PageLayoutHeader
     /**
      * @var BackendUserAuthentication
      */
-    protected $backendUser;
+    protected BackendUserAuthentication $backendUser;
 
     /**
      * @var int
      */
-    protected $pageUid;
+    protected int $pageUid;
 
     /**
      * @var array
      */
-    protected $pageRecord;
+    protected array $pageRecord;
 
     /**
      * @var int
      */
-    protected $language;
+    protected int $language;
 
 
 
@@ -174,7 +174,7 @@ class PageLayoutHeader
     {
         $configForPageType = $this->getConfigForCurrentPage();
 
-        if (count($configForPageType) > 0) {
+        if (empty($configForPageType) === false) {
             foreach ($configForPageType as $key => &$singleConfig) {
                 $singleConfig['fields'] = $this->prepareFieldsList($singleConfig['fields']);
 
@@ -349,7 +349,7 @@ class PageLayoutHeader
         $isVisible = true;
 
         if (array_key_exists('quickeditDefaultHidden', $this->backendUser->uc)) {
-            $isVisible = !(bool)$this->backendUser->uc['quickeditDefaultHidden'];
+            $isVisible = !$this->backendUser->uc['quickeditDefaultHidden'];
         }
 
         if (array_key_exists('quickedit', $this->backendUser->uc) &&
