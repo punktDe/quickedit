@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace PunktDe\Quickedit\Backend;
 
 /**
- * (c) 2022 https://punkt.de GmbH - Karlsruhe, Germany - https://punkt.de
+ * (c) 2023 https://punkt.de GmbH - Karlsruhe, Germany - https://punkt.de
  * All rights reserved.
  */
 
+use TYPO3\CMS\Backend\Controller\Event\ModifyPageLayoutContentEvent;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Page\PageRenderer;
@@ -17,8 +18,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use TYPO3\CMS\Fluid\View\StandaloneView;
 
-
-class PageLayoutHeader
+class PageLayoutEventListener
 {
     /**
      * @var BackendUserAuthentication
@@ -31,9 +31,9 @@ class PageLayoutHeader
     protected int $pageUid;
 
     /**
-     * @var array
+     * @var ?array
      */
-    protected array $pageRecord;
+    protected ?array $pageRecord;
 
     /**
      * @var int
@@ -42,14 +42,29 @@ class PageLayoutHeader
 
 
 
-    public function __construct()
+    public function __invoke(ModifyPageLayoutContentEvent $event): void
+    {
+        $this->init($event);
+
+        if ($this->pageUid > 0 && is_array($this->pageRecord)) {
+            $this->updatePageRecordIfOverlay();
+        }
+
+        $event->addHeaderContent($this->renderToolbar());
+    }
+
+
+
+    /**
+     * @param ModifyPageLayoutContentEvent $event
+     * @return void
+     */
+    public function init(ModifyPageLayoutContentEvent $event): void
     {
         $this->backendUser = $GLOBALS['BE_USER'];
-        $this->pageUid = (int)GeneralUtility::_GET('id');
+        $this->pageUid = (int)($event->getRequest()->getQueryParams()['id'] ?? 0);
         $this->pageRecord = BackendUtility::getRecord('pages', $this->pageUid);
         $this->language = (int)BackendUtility::getModuleData(['language'], [], 'web_layout')['language'];
-
-        $this->updatePageRecordIfOverlay();
     }
 
 
@@ -77,7 +92,7 @@ class PageLayoutHeader
     /**
      * @return string
      */
-    public function render(): string
+    public function renderToolbar(): string
     {
         if (!$this->toolbarIsEnabledForUser()) {
             return '';
@@ -85,7 +100,7 @@ class PageLayoutHeader
 
         $pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
         /** @var PageRenderer $pageRenderer */
-        $pageRenderer->loadRequireJsModule('TYPO3/CMS/Quickedit/Quickedit');
+        $pageRenderer->loadJavaScriptModule('@punktde/quickedit/Quickedit.js');
 
         $standaloneView = $this->initializeStandaloneView();
         $standaloneView->assign('pageId', $this->pageRecord['uid']);
@@ -94,7 +109,6 @@ class PageLayoutHeader
 
         return $standaloneView->render();
     }
-
 
 
     /**
