@@ -2,14 +2,13 @@
 
 <f:if condition="{config}">
     <f:render partial="QuickeditHeader" />
-
     <div class="quickedit__container {f:if(condition: isVisible, then: 'collapse show', else: 'collapse')}" id="quick-edit" data-page="{pageId}">
         <div class="quickedit__container-inner">
             <f:for each="{config}" as="editConfig">
                 <div class="quickedit__group">
                     <div class="quickedit__label">{editConfig.label}</div>
 
-                    <be:link.editRecord table="pages" uid="{pageId}" fields="{editConfig.fields}" class="quickedit__edit-button btn btn-default">
+                    <be:link.editRecord table="pages" uid="{pageId}" fields="{editConfig.fields}" class="quickedit__edit-button btn btn-default" returnUrl="{f:be.uri(route: 'web_layout', parameters: '{id: pageId}')}">
                         <core:icon identifier="actions-open" size="medium" />
                     </be:link.editRecord>
 
