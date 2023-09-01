@@ -13,6 +13,12 @@
     "support": {
         "issues": "https://github.com/punktDe/quickedit/issues"
     },
+    "config": {
+        "allow-plugins": {
+            "typo3/class-alias-loader": true,
+            "typo3/cms-composer-installers": true
+        }
+    },
     "require": {
         "typo3/cms-core": "^11.5 || ^12.4"
     },
