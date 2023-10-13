@@ -3,6 +3,6 @@
 return [
     'dependencies' => ['core', 'backend'],
     'imports' => [
-        '@punktde/quickedit/' => 'EXT:quickedit/Resources/Public/JavaScript/',
+        '@punktde/quickedit/' => 'EXT:quickedit/Resources/Public/ECMAScript6/',
     ],
 ];
