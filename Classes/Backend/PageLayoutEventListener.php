@@ -12,7 +12,6 @@ namespace PunktDe\Quickedit\Backend;
 use TYPO3\CMS\Backend\Controller\Event\ModifyPageLayoutContentEvent;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -101,12 +100,7 @@ class PageLayoutEventListener
 
         /** @var PageRenderer $pageRenderer */
         $pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
-
-        if ((new Typo3Version())->getMajorVersion() >= 12) {
-            $pageRenderer->loadJavaScriptModule('@punktde/quickedit/quickedit.js');
-        } else {
-            $pageRenderer->loadRequireJsModule('TYPO3/CMS/Quickedit/Quickedit');
-        }
+        $pageRenderer->loadJavaScriptModule('@punktde/quickedit/quickedit.js');
 
         $standaloneView = $this->initializeStandaloneView();
         $standaloneView->assign('pageId', $this->pageRecord['uid']);
@@ -115,6 +109,7 @@ class PageLayoutEventListener
 
         return $standaloneView->render();
     }
+
 
 
     /**
@@ -203,7 +198,7 @@ class PageLayoutEventListener
                     continue;
                 }
 
-                if (strpos($singleConfig['label'], 'LLL') === 0) {
+                if (str_starts_with($singleConfig['label'], 'LLL')) {
                     $singleConfig['label'] = LocalizationUtility::translate($singleConfig['label']);
                 }
 
