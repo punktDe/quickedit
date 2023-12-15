@@ -40,6 +40,11 @@ class PageLayoutEventListener
      */
     protected int $language;
 
+    /**
+     * @var int
+     */
+    protected int $function;
+
 
 
     public function __invoke(ModifyPageLayoutContentEvent $event): void
@@ -63,6 +68,7 @@ class PageLayoutEventListener
     {
         $this->backendUser = $GLOBALS['BE_USER'];
         $this->pageUid = (int)($event->getRequest()->getQueryParams()['id'] ?? 0);
+        $this->function = (int)($event->getRequest()->getQueryParams()['function'] ?? 0);
         $this->pageRecord = BackendUtility::getRecord('pages', $this->pageUid);
         $this->language = (int)BackendUtility::getModuleData(['language'], [], 'web_layout')['language'];
     }
@@ -104,6 +110,9 @@ class PageLayoutEventListener
 
         $standaloneView = $this->initializeStandaloneView();
         $standaloneView->assign('pageId', $this->pageRecord['uid']);
+        $standaloneView->assign('originPageId', $this->pageRecord['l10n_parent'] ?: $this->pageRecord['uid']);
+        $standaloneView->assign('languageId', $this->language);
+        $standaloneView->assign('functionId', $this->function);
         $standaloneView->assign('config', $this->getFieldConfigForPage());
         $standaloneView->assign('isVisible', $this->isVisible());
 

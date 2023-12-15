@@ -8,7 +8,7 @@
                 <div class="quickedit__group">
                     <div class="quickedit__label">{editConfig.label}</div>
 
-                    <be:link.editRecord table="pages" uid="{pageId}" fields="{editConfig.fields}" class="quickedit__edit-button btn btn-default" returnUrl="{f:be.uri(route: 'web_layout', parameters: '{id: pageId}')}">
+                    <be:link.editRecord table="pages" uid="{pageId}" fields="{editConfig.fields}" class="quickedit__edit-button btn btn-default" returnUrl="{f:be.uri(route: 'web_layout', parameters: '{id: originPageId, function: functionId, language: languageId}')}">
                         <core:icon identifier="actions-open" size="medium" />
                     </be:link.editRecord>
 
