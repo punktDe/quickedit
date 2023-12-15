@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace PunktDe\Quickedit\Backend;
 
 /**
- * (c) 2022 https://punkt.de GmbH - Karlsruhe, Germany - https://punkt.de
+ * (c) 2023 https://punkt.de GmbH - Karlsruhe, Germany - https://punkt.de
  * All rights reserved.
  */
 
+use TYPO3\CMS\Backend\Controller\Event\ModifyPageLayoutContentEvent;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Page\PageRenderer;
@@ -17,39 +18,59 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use TYPO3\CMS\Fluid\View\StandaloneView;
 
-
-class PageLayoutHeader
+class PageLayoutEventListener
 {
     /**
      * @var BackendUserAuthentication
      */
-    protected $backendUser;
+    protected BackendUserAuthentication $backendUser;
 
     /**
      * @var int
      */
-    protected $pageUid;
+    protected int $pageUid;
 
     /**
-     * @var array
+     * @var ?array
      */
-    protected $pageRecord;
+    protected ?array $pageRecord;
 
     /**
      * @var int
      */
-    protected $language;
+    protected int $language;
+
+    /**
+     * @var int
+     */
+    protected int $function;
 
 
 
-    public function __construct()
+    public function __invoke(ModifyPageLayoutContentEvent $event): void
+    {
+        $this->init($event);
+
+        if ($this->pageUid > 0 && is_array($this->pageRecord)) {
+            $this->updatePageRecordIfOverlay();
+        }
+
+        $event->addHeaderContent($this->renderToolbar());
+    }
+
+
+
+    /**
+     * @param ModifyPageLayoutContentEvent $event
+     * @return void
+     */
+    public function init(ModifyPageLayoutContentEvent $event): void
     {
         $this->backendUser = $GLOBALS['BE_USER'];
-        $this->pageUid = (int)GeneralUtility::_GET('id');
+        $this->pageUid = (int)($event->getRequest()->getQueryParams()['id'] ?? 0);
+        $this->function = (int)($event->getRequest()->getQueryParams()['function'] ?? 0);
         $this->pageRecord = BackendUtility::getRecord('pages', $this->pageUid);
         $this->language = (int)BackendUtility::getModuleData(['language'], [], 'web_layout')['language'];
-
-        $this->updatePageRecordIfOverlay();
     }
 
 
@@ -77,18 +98,21 @@ class PageLayoutHeader
     /**
      * @return string
      */
-    public function render(): string
+    public function renderToolbar(): string
     {
         if (!$this->toolbarIsEnabledForUser()) {
             return '';
         }
 
-        $pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
         /** @var PageRenderer $pageRenderer */
-        $pageRenderer->loadRequireJsModule('TYPO3/CMS/Quickedit/Quickedit');
+        $pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
+        $pageRenderer->loadJavaScriptModule('@punktde/quickedit/quickedit.js');
 
         $standaloneView = $this->initializeStandaloneView();
         $standaloneView->assign('pageId', $this->pageRecord['uid']);
+        $standaloneView->assign('originPageId', $this->pageRecord['l10n_parent'] ?: $this->pageRecord['uid']);
+        $standaloneView->assign('languageId', $this->language);
+        $standaloneView->assign('functionId', $this->function);
         $standaloneView->assign('config', $this->getFieldConfigForPage());
         $standaloneView->assign('isVisible', $this->isVisible());
 
@@ -174,7 +198,7 @@ class PageLayoutHeader
     {
         $configForPageType = $this->getConfigForCurrentPage();
 
-        if (count($configForPageType) > 0) {
+        if (empty($configForPageType) === false) {
             foreach ($configForPageType as $key => &$singleConfig) {
                 $singleConfig['fields'] = $this->prepareFieldsList($singleConfig['fields']);
 
@@ -183,7 +207,7 @@ class PageLayoutHeader
                     continue;
                 }
 
-                if (strpos($singleConfig['label'], 'LLL') === 0) {
+                if (str_starts_with($singleConfig['label'], 'LLL')) {
                     $singleConfig['label'] = LocalizationUtility::translate($singleConfig['label']);
                 }
 
@@ -349,7 +373,7 @@ class PageLayoutHeader
         $isVisible = true;
 
         if (array_key_exists('quickeditDefaultHidden', $this->backendUser->uc)) {
-            $isVisible = !(bool)$this->backendUser->uc['quickeditDefaultHidden'];
+            $isVisible = !$this->backendUser->uc['quickeditDefaultHidden'];
         }
 
         if (array_key_exists('quickedit', $this->backendUser->uc) &&

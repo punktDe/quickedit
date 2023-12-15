@@ -1,11 +1,9 @@
 <?php
-if (!defined('TYPO3_MODE')) {
+if (!defined('TYPO3')) {
     die ('Access denied.');
 }
 
-$GLOBALS['TBE_STYLES']['skins']['quickedit'] = [];
-$GLOBALS['TBE_STYLES']['skins']['quickedit']['name'] = 'quickedit';
-$GLOBALS['TBE_STYLES']['skins']['quickedit']['stylesheetDirectories']['css'] = 'EXT:quickedit/Resources/Public/Backend/Css/';
+$GLOBALS['TYPO3_CONF_VARS']['BE']['stylesheets']['quickedit'] = 'EXT:quickedit/Resources/Public/Backend/Css';
 
 
 // Extend user settings

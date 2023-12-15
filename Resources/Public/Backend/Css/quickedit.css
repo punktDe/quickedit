@@ -44,14 +44,14 @@
     border-top: none;
     width: 3rem;
     height: 2rem;
-    background-image: url(../../../../../../../typo3conf/ext/quickedit/Resources/Public/Icons/angle-up-solid.svg);
+    background-image: url(../../Icons/angle-up-solid.svg);
     background-position: center;
     background-repeat: no-repeat;
     background-size: 1rem 2rem;
 }
 
 .btn-default.quickedit__toggle-button.collapsed {
-    background-image: url(../../../../../../../typo3conf/ext/quickedit/Resources/Public/Icons/angle-down-solid.svg);
+    background-image: url(../../Icons/angle-down-solid.svg);
 }
 
 .quickedit-popover {

@@ -1,0 +1,12 @@
+services:
+  # general settings
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+
+  PunktDe\Quickedit\Backend\PageLayoutEventListener:
+    tags:
+      - name: event.listener
+        identifier: 'quickedit/backend/modify-page-module-content'
