@@ -8,7 +8,7 @@ Change log
 
 Version 2.0.0
 -------------
-- Update extension for TYPO3 11 LTS support (https://github.com/punktDe/quickedit/issues/21)
+- Update extension for TYPO3 12 LTS support (https://github.com/punktDe/quickedit/issues/21)
 
 Version 1.1.0
 -------------
