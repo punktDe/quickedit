@@ -47,6 +47,7 @@ class PageLayoutEventListener
     protected int $function;
 
 
+
     /**
      * Inject an instance of class TYPO3\CMS\Core\View\ViewFactoryInterface
      *
@@ -58,9 +59,17 @@ class PageLayoutEventListener
 
 
 
+    /**
+     * @param ModifyPageLayoutContentEvent $event
+     * @return void
+     */
     public function __invoke(ModifyPageLayoutContentEvent $event): void
     {
-        $this->init($event);
+        $this->backendUser = $GLOBALS['BE_USER'];
+        $this->pageUid = (int)($event->getRequest()->getQueryParams()['id'] ?? 0);
+        $this->function = (int)($event->getRequest()->getQueryParams()['function'] ?? 0);
+        $this->pageRecord = BackendUtility::getRecord('pages', $this->pageUid);
+        $this->language = (int)BackendUtility::getModuleData(['language'], [], 'web_layout')['language'];
 
         if ($this->pageUid > 0 && is_array($this->pageRecord)) {
             $this->updatePageRecordIfOverlay();
@@ -72,22 +81,7 @@ class PageLayoutEventListener
 
 
     /**
-     * @param ModifyPageLayoutContentEvent $event
      * @return void
-     */
-    public function init(ModifyPageLayoutContentEvent $event): void
-    {
-        $this->backendUser = $GLOBALS['BE_USER'];
-        $this->pageUid = (int)($event->getRequest()->getQueryParams()['id'] ?? 0);
-        $this->function = (int)($event->getRequest()->getQueryParams()['function'] ?? 0);
-        $this->pageRecord = BackendUtility::getRecord('pages', $this->pageUid);
-        $this->language = (int)BackendUtility::getModuleData(['language'], [], 'web_layout')['language'];
-    }
-
-
-
-    /**
-     *
      */
     protected function updatePageRecordIfOverlay(): void
     {
