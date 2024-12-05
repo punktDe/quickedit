@@ -15,8 +15,9 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\View\ViewFactoryData;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
-use TYPO3\CMS\Fluid\View\StandaloneView;
+use TYPO3\CMS\Fluid\View\FluidViewFactory;
 
 class PageLayoutEventListener
 {
@@ -44,6 +45,16 @@ class PageLayoutEventListener
      * @var int
      */
     protected int $function;
+
+
+    /**
+     * Inject an instance of class TYPO3\CMS\Core\View\ViewFactoryInterface
+     *
+     * @param FluidViewFactory $viewFactory
+     */
+    public function __construct(
+        private readonly FluidViewFactory $viewFactory,
+    ) {}
 
 
 
@@ -108,15 +119,22 @@ class PageLayoutEventListener
         $pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
         $pageRenderer->loadJavaScriptModule('@punktde/quickedit/quickedit.js');
 
-        $standaloneView = $this->initializeStandaloneView();
-        $standaloneView->assign('pageId', $this->pageRecord['uid']);
-        $standaloneView->assign('originPageId', $this->pageRecord['l10n_parent'] ?: $this->pageRecord['uid']);
-        $standaloneView->assign('languageId', $this->language);
-        $standaloneView->assign('functionId', $this->function);
-        $standaloneView->assign('config', $this->getFieldConfigForPage());
-        $standaloneView->assign('isVisible', $this->isVisible());
+        $viewFactoryData = new ViewFactoryData(
+            templateRootPaths: ['EXT:quickedit/Resources/Private/Templates/Backend'],
+            partialRootPaths: ['EXT:quickedit/Resources/Private/Partials/Backend'],
+            templatePathAndFilename: 'EXT:quickedit/Resources/Private/Templates/Backend/Quickedit.html'
+        );
 
-        return $standaloneView->render();
+        $view = $this->viewFactory->create($viewFactoryData);
+
+        $view->assign('pageId', $this->pageRecord['uid']);
+        $view->assign('originPageId', $this->pageRecord['l10n_parent'] ?: $this->pageRecord['uid']);
+        $view->assign('languageId', $this->language);
+        $view->assign('functionId', $this->function);
+        $view->assign('config', $this->getFieldConfigForPage());
+        $view->assign('isVisible', $this->isVisible());
+
+        return $view->render();
     }
 
 
@@ -161,32 +179,6 @@ class PageLayoutEventListener
         }
 
         return $isEnabled;
-    }
-
-
-
-    /**
-     * Initializes the view by setting template and partial paths
-     *
-     * @return StandaloneView
-     */
-    protected function initializeStandaloneView(): StandaloneView
-    {
-        /** @var StandaloneView $standaloneView */
-        $standaloneView = GeneralUtility::makeInstance(StandaloneView::class);
-        $templatesPath = GeneralUtility::getFileAbsFileName('EXT:quickedit/Resources/Private/Templates/Backend');
-        $templateFileName = 'Quickedit.html';
-
-        $standaloneView->setTemplateRootPaths(
-            array($templatesPath)
-        );
-        $standaloneView->setPartialRootPaths(
-            array(GeneralUtility::getFileAbsFileName('EXT:quickedit/Resources/Private/Partials/Backend'))
-        );
-
-        $standaloneView->setTemplatePathAndFilename($templatesPath . '/' . $templateFileName);
-
-        return $standaloneView;
     }
 
 
