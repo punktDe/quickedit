@@ -1,1 +1,25 @@
-import t from"jquery";import e from"@typo3/backend/storage/persistent.js";let i={toggle:".quick-edit-toggle-button",container:"#quick-edit",getIdentifier:function(t){return"quickedit.visible."+t}};t(i.container).on("shown.bs.collapse",(function(){let n=t(this)[0],o=i.getIdentifier(n.dataset.page);e.set(o,1)})),t(i.container).on("hidden.bs.collapse",(function(){let n=t(this)[0],o=i.getIdentifier(n.dataset.page);e.set(o,0)}));
+import e from "@typo3/backend/storage/persistent.js";
+
+let i = {
+    toggle: ".quick-edit-toggle-button",
+    container: "#quick-edit",
+    getIdentifier: function (t) {
+        return "quickedit.visible." + t
+    }
+};
+
+const container = document.querySelector(i.container);
+
+if (container) {
+    container.addEventListener("shown.bs.collapse", function () {
+        const n = this;
+        const o = i.getIdentifier(n.dataset.page);
+        e.set(o, 1);
+    });
+
+    container.addEventListener("hidden.bs.collapse", function () {
+        const n = this;
+        const o = i.getIdentifier(n.dataset.page);
+        e.set(o, 0);
+    });
+};
