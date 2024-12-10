@@ -78,14 +78,8 @@ export default {
     ],
     output: [
         {
-            dir: '../Resources/Public/ECMAScript6',
-            format: 'es',
-            plugins: [terser()]
-        },
-        {
             dir: '../Resources/Public/JavaScript',
-            entryFileNames: (chunkInfo) => lowerDashedToUpperCamelCase('/' + chunkInfo.name).substring(1) + '.js',
-            format: 'amd',
+            format: 'es',
             plugins: [terser()]
         },
     ],
