@@ -334,7 +334,7 @@ class PageLayoutEventListener
 
                     $itemLabel = BackendUtility::getItemLabel('pages', $field);
 
-                    if (strpos($itemLabel, 'LLL') === 0) {
+                    if (str_starts_with($itemLabel, 'LLL')) {
                         $itemLabel = LocalizationUtility::translate($itemLabel);
                     }
 
