@@ -117,21 +117,6 @@ mod {
                     }
                 }
             }
-            // Recycler
-            255 {
-                config {
-                    10 {
-                        label = LLL:EXT:quickedit/Resources/Private/Language/Backend.xlf:defaultPageType.group.general
-                        fields = title, slug
-                        previewFields = *
-                    }
-                    20 {
-                        label = LLL:EXT:quickedit/Resources/Private/Language/Backend.xlf:defaultPageType.group.access
-                        fields = hidden, editlock
-                        previewFields = *
-                    }
-                }
-            }
         }
     }
 }

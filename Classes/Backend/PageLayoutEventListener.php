@@ -15,8 +15,9 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\View\ViewFactoryData;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
-use TYPO3\CMS\Fluid\View\StandaloneView;
+use TYPO3\CMS\Fluid\View\FluidViewFactory;
 
 class PageLayoutEventListener
 {
@@ -47,9 +48,28 @@ class PageLayoutEventListener
 
 
 
+    /**
+     * Inject an instance of class TYPO3\CMS\Core\View\ViewFactoryInterface
+     *
+     * @param FluidViewFactory $viewFactory
+     */
+    public function __construct(
+        private readonly FluidViewFactory $viewFactory,
+    ) {}
+
+
+
+    /**
+     * @param ModifyPageLayoutContentEvent $event
+     * @return void
+     */
     public function __invoke(ModifyPageLayoutContentEvent $event): void
     {
-        $this->init($event);
+        $this->backendUser = $GLOBALS['BE_USER'];
+        $this->pageUid = (int)($event->getRequest()->getQueryParams()['id'] ?? 0);
+        $this->function = (int)($event->getRequest()->getQueryParams()['function'] ?? 0);
+        $this->pageRecord = BackendUtility::getRecord('pages', $this->pageUid);
+        $this->language = (int)BackendUtility::getModuleData(['language'], [], 'web_layout')['language'];
 
         if ($this->pageUid > 0 && is_array($this->pageRecord)) {
             $this->updatePageRecordIfOverlay();
@@ -61,22 +81,7 @@ class PageLayoutEventListener
 
 
     /**
-     * @param ModifyPageLayoutContentEvent $event
      * @return void
-     */
-    public function init(ModifyPageLayoutContentEvent $event): void
-    {
-        $this->backendUser = $GLOBALS['BE_USER'];
-        $this->pageUid = (int)($event->getRequest()->getQueryParams()['id'] ?? 0);
-        $this->function = (int)($event->getRequest()->getQueryParams()['function'] ?? 0);
-        $this->pageRecord = BackendUtility::getRecord('pages', $this->pageUid);
-        $this->language = (int)BackendUtility::getModuleData(['language'], [], 'web_layout')['language'];
-    }
-
-
-
-    /**
-     *
      */
     protected function updatePageRecordIfOverlay(): void
     {
@@ -108,15 +113,22 @@ class PageLayoutEventListener
         $pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
         $pageRenderer->loadJavaScriptModule('@punktde/quickedit/quickedit.js');
 
-        $standaloneView = $this->initializeStandaloneView();
-        $standaloneView->assign('pageId', $this->pageRecord['uid']);
-        $standaloneView->assign('originPageId', $this->pageRecord['l10n_parent'] ?: $this->pageRecord['uid']);
-        $standaloneView->assign('languageId', $this->language);
-        $standaloneView->assign('functionId', $this->function);
-        $standaloneView->assign('config', $this->getFieldConfigForPage());
-        $standaloneView->assign('isVisible', $this->isVisible());
+        $viewFactoryData = new ViewFactoryData(
+            templateRootPaths: ['EXT:quickedit/Resources/Private/Templates/Backend'],
+            partialRootPaths: ['EXT:quickedit/Resources/Private/Partials/Backend'],
+            templatePathAndFilename: 'EXT:quickedit/Resources/Private/Templates/Backend/Quickedit.html'
+        );
 
-        return $standaloneView->render();
+        $view = $this->viewFactory->create($viewFactoryData);
+
+        $view->assign('pageId', $this->pageRecord['uid']);
+        $view->assign('originPageId', $this->pageRecord['l10n_parent'] ?: $this->pageRecord['uid']);
+        $view->assign('languageId', $this->language);
+        $view->assign('functionId', $this->function);
+        $view->assign('config', $this->getFieldConfigForPage());
+        $view->assign('isVisible', $this->isVisible());
+
+        return $view->render();
     }
 
 
@@ -161,32 +173,6 @@ class PageLayoutEventListener
         }
 
         return $isEnabled;
-    }
-
-
-
-    /**
-     * Initializes the view by setting template and partial paths
-     *
-     * @return StandaloneView
-     */
-    protected function initializeStandaloneView(): StandaloneView
-    {
-        /** @var StandaloneView $standaloneView */
-        $standaloneView = GeneralUtility::makeInstance(StandaloneView::class);
-        $templatesPath = GeneralUtility::getFileAbsFileName('EXT:quickedit/Resources/Private/Templates/Backend');
-        $templateFileName = 'Quickedit.html';
-
-        $standaloneView->setTemplateRootPaths(
-            array($templatesPath)
-        );
-        $standaloneView->setPartialRootPaths(
-            array(GeneralUtility::getFileAbsFileName('EXT:quickedit/Resources/Private/Partials/Backend'))
-        );
-
-        $standaloneView->setTemplatePathAndFilename($templatesPath . '/' . $templateFileName);
-
-        return $standaloneView;
     }
 
 
@@ -348,7 +334,7 @@ class PageLayoutEventListener
 
                     $itemLabel = BackendUtility::getItemLabel('pages', $field);
 
-                    if (strpos($itemLabel, 'LLL') === 0) {
+                    if (str_starts_with($itemLabel, 'LLL')) {
                         $itemLabel = LocalizationUtility::translate($itemLabel);
                     }
 

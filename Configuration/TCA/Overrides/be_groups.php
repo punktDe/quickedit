@@ -5,11 +5,9 @@ $additionalFields = [
         'label' => 'LLL:EXT:quickedit/Resources/Private/Language/Backend.xlf:setting.disableToolbar',
         'config' => [
             'type' => 'check',
-            'default' => 0,
             'items' => [
                 [
-                    0 => '',
-                    1 => '',
+                    'label' => '',
                 ]
             ]
         ]
