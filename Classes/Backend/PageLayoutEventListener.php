@@ -10,14 +10,18 @@ namespace PunktDe\Quickedit\Backend;
  */
 
 use TYPO3\CMS\Backend\Controller\Event\ModifyPageLayoutContentEvent;
+use TYPO3\CMS\Backend\Domain\Repository\Localization\LocalizationRepository;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Page\PageRenderer;
+use TYPO3\CMS\Core\Schema\Exception\UndefinedFieldException;
+use TYPO3\CMS\Core\Schema\Exception\UndefinedSchemaException;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\View\ViewFactoryData;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use TYPO3\CMS\Fluid\View\FluidViewFactory;
+use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
 
 class PageLayoutEventListener
 {
@@ -47,14 +51,15 @@ class PageLayoutEventListener
     protected int $function;
 
 
-
     /**
-     * Inject an instance of class TYPO3\CMS\Core\View\ViewFactoryInterface
-     *
      * @param FluidViewFactory $viewFactory
+     * @param LocalizationRepository $localizationRepository
+     * @param TcaSchemaFactory $tcaSchemaFactory
      */
     public function __construct(
         private readonly FluidViewFactory $viewFactory,
+        private readonly LocalizationRepository $localizationRepository,
+        private readonly TcaSchemaFactory $tcaSchemaFactory,
     ) {}
 
 
@@ -86,7 +91,7 @@ class PageLayoutEventListener
     protected function updatePageRecordIfOverlay(): void
     {
         if ($this->language > 0) {
-            $overlayRecords = BackendUtility::getRecordLocalization(
+            $overlayRecords = $this->localizationRepository->getRecordTranslation(
                 'pages',
                 $this->pageUid,
                 $this->language
@@ -207,11 +212,11 @@ class PageLayoutEventListener
     }
 
 
-
     /**
      * Get the Quickedit config for current doktype, sort groups by their number in config.
      *
      * @return array
+     * @throws \JsonException
      */
     protected function getConfigForCurrentPage(): array
     {
@@ -301,11 +306,12 @@ class PageLayoutEventListener
     }
 
 
-
     /**
      * Checks set previewFields and get the corresponding field labels and values for display in backend.
      *
      * @param $groupConfig array
+     * @throws UndefinedFieldException
+     * @throws UndefinedSchemaException
      */
     protected function processPreviewFields(array &$groupConfig): void
     {
@@ -332,13 +338,14 @@ class PageLayoutEventListener
                         $this->pageUid
                     );
 
-                    $itemLabel = BackendUtility::getItemLabel('pages', $field);
+                    $schema = $this->tcaSchemaFactory->has('pages') ? $this->tcaSchemaFactory->get('pages') : null;
 
-                    if (str_starts_with($itemLabel, 'LLL')) {
-                        $itemLabel = LocalizationUtility::translate($itemLabel);
-                    }
+                    $itemLabel = $schema !== null && $schema->hasField($field) ? $schema->getField($field)->getLabel() : null;
 
-                    $groupConfig['fieldValues'][$field]['label'] = $itemLabel;
+
+                    $itemLabel = LocalizationUtility::translate($itemLabel);
+
+                    $groupConfig['fieldValues'][$field]['label'] = $itemLabel ?: $field;
                 }
             }
         }
