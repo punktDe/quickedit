@@ -33,6 +33,7 @@
 
 .quickedit__toggle-container {
     border-top: 1px solid #bbb;
+    padding-bottom: 1rem;
 }
 
 .quickedit__field-value {
@@ -41,13 +42,14 @@
 
 .btn-default.quickedit__toggle-button {
     margin-top: -1px;
+    border-radius: unset;
     border-top: none;
     width: 3rem;
     height: 2rem;
     background-image: url(../../Icons/angle-up-solid.svg);
     background-position: center;
     background-repeat: no-repeat;
-    background-size: 1rem 2rem;
+    background-size: 1rem 1rem;
 }
 
 .btn-default.quickedit__toggle-button.collapsed {
