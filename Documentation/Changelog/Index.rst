@@ -6,6 +6,10 @@
 Change log
 ==========
 
+Version 4.0.0
+-------------
+- Update extension for TYPO3 14 LTS support (https://github.com/punktDe/quickedit/issues/27)
+
 Version 3.0.0
 -------------
 - Update extension for TYPO3 13 LTS support (https://github.com/punktDe/quickedit/issues/23)
