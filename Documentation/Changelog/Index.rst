@@ -9,6 +9,7 @@ Change log
 Version 4.0.0
 -------------
 - Update extension for TYPO3 14 LTS support (https://github.com/punktDe/quickedit/issues/27)
+- Remove :file:`ext_tables.sql`, the database columns are now generated automatically from TCA
 
 Version 3.0.0
 -------------

@@ -17,10 +17,10 @@ use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Page\PageRenderer;
-use TYPO3\CMS\Core\Schema\Exception\UndefinedFieldException;
 use TYPO3\CMS\Core\Schema\Exception\UndefinedSchemaException;
+use TYPO3\CMS\Core\Schema\Field\FieldTranslationBehaviour;
+use TYPO3\CMS\Core\Schema\TcaSchema;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
-use TYPO3\CMS\Core\Utility\DebugUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Backend\Routing\UriBuilder as BackendUriBuilder;
 use TYPO3\CMS\Core\View\ViewFactoryData;
@@ -101,7 +101,7 @@ class PageLayoutEventListener
         ) {
             $this->language = $pageContext->selectedLanguageIds[0];
             $this->pageRecord = $pageContext->pageRecord;
-            $this->languages = $moduleData->get('languages');
+            $this->languages = $pageContext->selectedLanguageIds;
         } else {
             $this->language = $pageContext->getPrimaryLanguageId();
             $this->pageRecord = $pageContext->languageInformation->getTranslationRecord($this->language);
@@ -178,8 +178,8 @@ class PageLayoutEventListener
             ];
         }
 
-        $schema = $this->tcaSchemaFactory->has('pages') ? $this->tcaSchemaFactory->get('pages') : null;
-        if ($schema !== null && $schema->hasCapability(TcaSchemaCapability::Language)) {
+        $schema = $this->getPagesSchema();
+        if ($schema->hasCapability(TcaSchemaCapability::Language)) {
             $languageField = $schema->getCapability(TcaSchemaCapability::Language)
                 ->getLanguageField()
                 ->getName();
@@ -366,29 +366,34 @@ class PageLayoutEventListener
 
 
     /**
-     * @param $field string
+     * Fields marked as "exclude" in TCA need an explicit permission for non-admin users.
+     * Expects a field that is defined in TCA (see isFieldDefined()).
+     *
+     * @param string $field
      * @return bool
+     * @throws UndefinedSchemaException
      */
     protected function userHasAccessToField(string $field): bool
     {
-        return $field !== '' && (!array_key_exists('exclude', $GLOBALS['TCA']['pages']['columns'][$field]) ||
-                $GLOBALS['TCA']['pages']['columns'][$field]['exclude'] === 0 ||
-                $this->backendUser->check('non_exclude_fields', 'pages:' . $field));
+        return !$this->getPagesSchema()->getField($field)->supportsAccessControl()
+            || $this->backendUser->check('non_exclude_fields', 'pages:' . $field);
     }
 
 
 
     /**
+     * Fields with l10n_mode "exclude" can't be edited in translations.
+     * Expects a field that is defined in TCA (see isFieldDefined()).
+     *
      * @param string $field
      * @return bool
+     * @throws UndefinedSchemaException
      */
     protected function fieldIsAvailableForLanguage(string $field): bool
     {
         if ($this->language > 0) {
-            return $field !== '' && (
-                    !array_key_exists('l10n_mode', $GLOBALS['TCA']['pages']['columns'][$field]) ||
-                    $GLOBALS['TCA']['pages']['columns'][$field]['l10n_mode'] !== 'exclude'
-                );
+            return $this->getPagesSchema()->getField($field)->getTranslationBehaviour()
+                !== FieldTranslationBehaviour::Excluded;
         }
 
         return true;
@@ -400,7 +405,6 @@ class PageLayoutEventListener
      * Checks set previewFields and get the corresponding field labels and values for display in backend.
      *
      * @param $groupConfig array
-     * @throws UndefinedFieldException
      * @throws UndefinedSchemaException
      */
     protected function processPreviewFields(array &$groupConfig): void
@@ -421,16 +425,15 @@ class PageLayoutEventListener
                     $groupConfig['fieldValues'][$field]['value'] = BackendUtility::getProcessedValue(
                         'pages',
                         $field,
-                        $this->pageRecord[$field],
+                        $this->pageRecord[$field] ?? null,
                         0,
                         false,
                         false,
                         $this->pageUid
                     );
 
-                    $schema = $this->tcaSchemaFactory->has('pages') ? $this->tcaSchemaFactory->get('pages') : null;
-
-                    $itemLabel = $schema !== null && $schema->hasField($field) ? $schema->getField($field)->getLabel() : '';
+                    $schema = $this->getPagesSchema();
+                    $itemLabel = $schema->hasField($field) ? $schema->getField($field)->getLabel() : '';
                     $itemLabel = $this->getLanguageService()->sL($itemLabel);
 
                     $groupConfig['fieldValues'][$field]['label'] = $itemLabel ?: $field;
@@ -471,10 +474,21 @@ class PageLayoutEventListener
     /**
      * @param string $field
      * @return bool
+     * @throws UndefinedSchemaException
      */
     protected function isFieldDefined(string $field): bool
     {
-        return array_key_exists($field, $GLOBALS['TCA']['pages']['columns']);
+        return $field !== '' && $this->getPagesSchema()->hasField($field);
+    }
+
+
+
+    /**
+     * @throws UndefinedSchemaException
+     */
+    protected function getPagesSchema(): TcaSchema
+    {
+        return $this->tcaSchemaFactory->get('pages');
     }
 
 
