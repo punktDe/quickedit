@@ -24,7 +24,7 @@ use TYPO3\CMS\Core\Utility\DebugUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Backend\Routing\UriBuilder as BackendUriBuilder;
 use TYPO3\CMS\Core\View\ViewFactoryData;
-use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
+use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Fluid\View\FluidViewFactory;
 use TYPO3\CMS\Core\Schema\Capability\TcaSchemaCapability;
 use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
@@ -100,15 +100,21 @@ class PageLayoutEventListener
             $pageContext->hasMultipleLanguagesSelected()
         ) {
             $this->language = $pageContext->selectedLanguageIds[0];
-            $this->pageUid = $pageContext->pageId;
             $this->pageRecord = $pageContext->pageRecord;
             $this->languages = $moduleData->get('languages');
         } else {
             $this->language = $pageContext->getPrimaryLanguageId();
             $this->pageRecord = $pageContext->languageInformation->getTranslationRecord($this->language);
-            $this->pageUid = $this->pageRecord['uid'];
             $this->languages[] = $this->language;
         }
+
+        // No page record available (e.g. selected language has no translation yet, or no page selected):
+        // nothing to edit, so do not render the toolbar.
+        if ($this->pageRecord === null) {
+            return;
+        }
+
+        $this->pageUid = (int)$this->pageRecord['uid'];
 
         $event->addHeaderContent($this->renderToolbar());
     }
@@ -272,9 +278,7 @@ class PageLayoutEventListener
                         continue;
                     }
 
-                    if (str_starts_with($singleConfig['label'], 'LLL')) {
-                        $singleConfig['label'] = LocalizationUtility::translate($singleConfig['label']);
-                    }
+                    $singleConfig['label'] = $this->getLanguageService()->sL($singleConfig['label'] ?? '');
 
                     $this->processPreviewFields($singleConfig);
 
@@ -426,10 +430,8 @@ class PageLayoutEventListener
 
                     $schema = $this->tcaSchemaFactory->has('pages') ? $this->tcaSchemaFactory->get('pages') : null;
 
-                    $itemLabel = $schema !== null && $schema->hasField($field) ? $schema->getField($field)->getLabel() : null;
-
-
-                    $itemLabel = LocalizationUtility::translate($itemLabel);
+                    $itemLabel = $schema !== null && $schema->hasField($field) ? $schema->getField($field)->getLabel() : '';
+                    $itemLabel = $this->getLanguageService()->sL($itemLabel);
 
                     $groupConfig['fieldValues'][$field]['label'] = $itemLabel ?: $field;
                 }
@@ -473,5 +475,12 @@ class PageLayoutEventListener
     protected function isFieldDefined(string $field): bool
     {
         return array_key_exists($field, $GLOBALS['TCA']['pages']['columns']);
+    }
+
+
+
+    protected function getLanguageService(): LanguageService
+    {
+        return $GLOBALS['LANG'];
     }
 }
