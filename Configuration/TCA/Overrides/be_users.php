@@ -20,7 +20,14 @@ TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes('be_users', 
 unset($additionalFields);
 
 
-// Extend user settings
+// Extend user settings: own "Quickedit" tab containing the quickedit settings
+$quickeditTab = '--div--;LLL:EXT:quickedit/Resources/Private/Language/Backend.xlf:usersettings.quickeditTab';
+
+$GLOBALS['TCA']['be_users']['columns']['user_settings']['showitem'] = trim(
+    ($GLOBALS['TCA']['be_users']['columns']['user_settings']['showitem'] ?? '') . ', ' . $quickeditTab,
+    ", \t\n\r"
+);
+
 \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addUserSetting(
     'disableQuickeditInPageModule',
     [
@@ -29,7 +36,8 @@ unset($additionalFields);
             'type' => 'check',
             'renderType' => 'checkboxToggle',
         ]
-    ]
+    ],
+    'after:' . $quickeditTab
 );
 
 \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addUserSetting(
@@ -45,5 +53,4 @@ unset($additionalFields);
     'after:disableQuickeditInPageModule'
 );
 
-$GLOBALS['TCA']['be_users']['columns']['user_settings']['showitem'] .= ',
-            --div--;LLL:EXT:quickedit/Resources/Private/Language/Backend.xlf:usersettings.quickeditTab,disableQuickeditInPageModule,quickeditDefaultHidden';
+unset($quickeditTab);
