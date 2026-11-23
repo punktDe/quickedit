@@ -37,6 +37,15 @@ class PageLayoutEventListener
     protected BackendUserAuthentication $backendUser;
 
     /**
+     * Context of the page module: pageId and pageRecord always refer to the default language page
+     *
+     * @var PageContext
+     */
+    protected PageContext $pageContext;
+
+    /**
+     * UID of the edited page record (translation UID if a translation is edited)
+     *
      * @var int
      */
     protected int $pageUid;
@@ -85,6 +94,7 @@ class PageLayoutEventListener
 
         /** @var PageContext $pageContext */
         $pageContext = $event->getRequest()->getAttribute('pageContext');
+        $this->pageContext = $pageContext;
 
         /** @var ModuleData $moduleData */
         $moduleData = $event->getRequest()->getAttribute('moduleData');
@@ -99,7 +109,9 @@ class PageLayoutEventListener
             $pageContext->isDefaultLanguageSelected() ||
             $pageContext->hasMultipleLanguagesSelected()
         ) {
-            $this->language = $pageContext->selectedLanguageIds[0];
+            // The default language record is edited, so field filtering and overrides use the default language.
+            // The selected languages are kept separately for the return URL.
+            $this->language = 0;
             $this->pageRecord = $pageContext->pageRecord;
             $this->languages = $pageContext->selectedLanguageIds;
         } else {
@@ -235,7 +247,8 @@ class PageLayoutEventListener
             $isEnabled = false;
         }
 
-        if (!$this->backendUser->doesUserHaveAccess($this->pageRecord, Permission::PAGE_EDIT) ||
+        // Page permissions are defined on the default language page, also for translations (same as Core page module)
+        if (!$this->backendUser->doesUserHaveAccess($this->pageContext->pageRecord, Permission::PAGE_EDIT) ||
             !$this->backendUser->check('tables_modify', 'pages')) {
             $isEnabled = false;
         }
@@ -308,7 +321,8 @@ class PageLayoutEventListener
         $configForPageType = [];
 
         try {
-            $pageTsConfig = BackendUtility::getPagesTSconfig($this->pageUid);
+            // TSconfig and its conditions are evaluated for the default language page, not the translation UID
+            $pageTsConfig = BackendUtility::getPagesTSconfig($this->pageContext->pageId);
             if (
                 array_key_exists('mod.', $pageTsConfig) &&
                 is_array($pageTsConfig['mod.']) &&
