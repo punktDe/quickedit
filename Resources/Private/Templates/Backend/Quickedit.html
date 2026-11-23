@@ -21,7 +21,7 @@
                              data-bs-placement="bottom"
                              data-bs-trigger="hover"
                              data-bs-toggle="popover"
-                             data-bs-content="{f:render(partial:'FieldValues', arguments:{editConfig:editConfig})}"
+                             data-bs-content="{f:render(partial:'FieldValues', arguments:{editConfig:editConfig}) -> f:format.htmlspecialchars()}"
                              data-bs-custom-class="quickedit-popover"
                         >
                             <f:translate key="LLL:EXT:quickedit/Resources/Private/Language/Backend.xlf:currentValues" />
