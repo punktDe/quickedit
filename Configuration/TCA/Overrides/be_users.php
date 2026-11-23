@@ -14,14 +14,19 @@ $additionalFields = [
     ]
 ];
 
+$quickeditTab = '--div--;LLL:EXT:quickedit/Resources/Private/Language/Backend.xlf:usersettings.quickeditTab';
+
+// Own "Quickedit" tab in the be_users record, otherwise the field ends up in the last Core tab ("Extended")
 TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addTCAcolumns('be_users', $additionalFields);
-TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes('be_users', 'quickedit_disableToolbar');
+TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes(
+    'be_users',
+    $quickeditTab . ', quickedit_disableToolbar'
+);
 
 unset($additionalFields);
 
 
 // Extend user settings: own "Quickedit" tab containing the quickedit settings
-$quickeditTab = '--div--;LLL:EXT:quickedit/Resources/Private/Language/Backend.xlf:usersettings.quickeditTab';
 
 $GLOBALS['TCA']['be_users']['columns']['user_settings']['showitem'] = trim(
     ($GLOBALS['TCA']['be_users']['columns']['user_settings']['showitem'] ?? '') . ', ' . $quickeditTab,
