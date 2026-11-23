@@ -14,7 +14,11 @@ $additionalFields = [
     ]
 ];
 
+// Own "Quickedit" tab in the be_groups record, otherwise the field ends up in the last Core tab ("Extended")
 TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addTCAcolumns('be_groups', $additionalFields);
-TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes('be_groups', 'quickedit_disableToolbar');
+TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes(
+    'be_groups',
+    '--div--;LLL:EXT:quickedit/Resources/Private/Language/Backend.xlf:usersettings.quickeditTab, quickedit_disableToolbar'
+);
 
 unset($additionalFields);

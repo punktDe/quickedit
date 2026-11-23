@@ -20,7 +20,9 @@
         }
     },
     "require": {
-        "typo3/cms-core": "^13.4"
+        "typo3/cms-core": "^14.3",
+        "typo3/cms-backend": "^14.3",
+        "typo3/cms-fluid": "^14.3"
     },
     "autoload": {
         "psr-4": {

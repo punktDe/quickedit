@@ -3,15 +3,16 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-      "build": "rollup -c",
-      "watch": "rollup -c -w"
+    "build": "rollup -c",
+    "watch": "rollup -c -w"
   },
   "author": "Alexander Böhm",
-  "dependencies": {
-    "rollup": "^3.29.1"
-  },
   "devDependencies": {
-    "@rollup/plugin-node-resolve": "^15.2.1",
-    "@rollup/plugin-terser": "^0.4.3"
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-terser": "^1.0.2",
+    "rollup": "^4.68.7"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

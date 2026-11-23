@@ -9,15 +9,25 @@ namespace PunktDe\Quickedit\Backend;
  * All rights reserved.
  */
 
+use Exception;
+use TYPO3\CMS\Backend\Context\PageContext;
 use TYPO3\CMS\Backend\Controller\Event\ModifyPageLayoutContentEvent;
+use TYPO3\CMS\Backend\Module\ModuleData;
+use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Page\PageRenderer;
+use TYPO3\CMS\Core\Schema\Exception\UndefinedSchemaException;
+use TYPO3\CMS\Core\Schema\Field\FieldTranslationBehaviour;
+use TYPO3\CMS\Core\Schema\TcaSchema;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Backend\Routing\UriBuilder as BackendUriBuilder;
 use TYPO3\CMS\Core\View\ViewFactoryData;
-use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
+use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Fluid\View\FluidViewFactory;
+use TYPO3\CMS\Core\Schema\Capability\TcaSchemaCapability;
+use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
 
 class PageLayoutEventListener
 {
@@ -27,6 +37,15 @@ class PageLayoutEventListener
     protected BackendUserAuthentication $backendUser;
 
     /**
+     * Context of the page module: pageId and pageRecord always refer to the default language page
+     *
+     * @var PageContext
+     */
+    protected PageContext $pageContext;
+
+    /**
+     * UID of the edited page record (translation UID if a translation is edited)
+     *
      * @var int
      */
     protected int $pageUid;
@@ -44,17 +63,23 @@ class PageLayoutEventListener
     /**
      * @var int
      */
-    protected int $function;
+    protected int $viewMode;
 
+    /**
+     * @var array
+     */
+    protected array $languages = [];
 
 
     /**
-     * Inject an instance of class TYPO3\CMS\Core\View\ViewFactoryInterface
-     *
      * @param FluidViewFactory $viewFactory
+     * @param TcaSchemaFactory $tcaSchemaFactory
+     * @param BackendUriBuilder $uriBuilder
      */
     public function __construct(
         private readonly FluidViewFactory $viewFactory,
+        private readonly TcaSchemaFactory $tcaSchemaFactory,
+        private readonly BackendUriBuilder $uriBuilder,
     ) {}
 
 
@@ -66,36 +91,44 @@ class PageLayoutEventListener
     public function __invoke(ModifyPageLayoutContentEvent $event): void
     {
         $this->backendUser = $GLOBALS['BE_USER'];
-        $this->pageUid = (int)($event->getRequest()->getQueryParams()['id'] ?? 0);
-        $this->function = (int)($event->getRequest()->getQueryParams()['function'] ?? 0);
-        $this->pageRecord = BackendUtility::getRecord('pages', $this->pageUid);
-        $this->language = (int)BackendUtility::getModuleData(['language'], [], 'web_layout')['language'];
 
-        if ($this->pageUid > 0 && is_array($this->pageRecord)) {
-            $this->updatePageRecordIfOverlay();
+        /** @var PageContext $pageContext */
+        $pageContext = $event->getRequest()->getAttribute('pageContext');
+        $this->pageContext = $pageContext;
+
+        /** @var ModuleData $moduleData */
+        $moduleData = $event->getRequest()->getAttribute('moduleData');
+        $this->viewMode = 1;
+
+        if ($moduleData->has('viewMode')) {
+            $this->viewMode = (int)$moduleData->get('viewMode');
         }
+
+        if (
+            $this->viewMode > 1 ||
+            $pageContext->isDefaultLanguageSelected() ||
+            $pageContext->hasMultipleLanguagesSelected()
+        ) {
+            // The default language record is edited, so field filtering and overrides use the default language.
+            // The selected languages are kept separately for the return URL.
+            $this->language = 0;
+            $this->pageRecord = $pageContext->pageRecord;
+            $this->languages = $pageContext->selectedLanguageIds;
+        } else {
+            $this->language = $pageContext->getPrimaryLanguageId();
+            $this->pageRecord = $pageContext->languageInformation->getTranslationRecord($this->language);
+            $this->languages[] = $this->language;
+        }
+
+        // No page record available (e.g. selected language has no translation yet, or no page selected):
+        // nothing to edit, so do not render the toolbar.
+        if ($this->pageRecord === null) {
+            return;
+        }
+
+        $this->pageUid = (int)$this->pageRecord['uid'];
 
         $event->addHeaderContent($this->renderToolbar());
-    }
-
-
-
-    /**
-     * @return void
-     */
-    protected function updatePageRecordIfOverlay(): void
-    {
-        if ($this->language > 0) {
-            $overlayRecords = BackendUtility::getRecordLocalization(
-                'pages',
-                $this->pageUid,
-                $this->language
-            );
-
-            if (is_array($overlayRecords) && array_key_exists(0, $overlayRecords) && is_array($overlayRecords[0])) {
-                $this->pageRecord = $overlayRecords[0];
-            }
-        }
     }
 
 
@@ -122,13 +155,76 @@ class PageLayoutEventListener
         $view = $this->viewFactory->create($viewFactoryData);
 
         $view->assign('pageId', $this->pageRecord['uid']);
-        $view->assign('originPageId', $this->pageRecord['l10n_parent'] ?: $this->pageRecord['uid']);
-        $view->assign('languageId', $this->language);
-        $view->assign('functionId', $this->function);
         $view->assign('config', $this->getFieldConfigForPage());
         $view->assign('isVisible', $this->isVisible());
 
         return $view->render();
+    }
+
+
+
+    /**
+     * Builds contextual and full-page edit URLs for a given set of fields.
+     * Mirrors LanguageColumn::getPageEditUrlParameters() from the Core.
+     *
+     * @param string $fields Comma-separated list of field names
+     * @return array{contextualEditUrl: string, fullPageEditUrl: string}
+     * @throws UndefinedSchemaException
+     * @throws RouteNotFoundException
+     */
+    protected function buildEditUrls(string $fields = ''): array
+    {
+        $urlParameters = [
+            'edit' => [
+                'pages' => [
+                    $this->pageRecord['uid'] => 'edit',
+                ],
+            ],
+            'module' => 'web_layout',
+            'returnUrl' => $this->buildReturnUrl(),
+        ];
+
+        if ($fields !== '') {
+            $urlParameters['columnsOnly'] = [
+                'pages' => GeneralUtility::trimExplode(',', $fields, true),
+            ];
+        }
+
+        $schema = $this->getPagesSchema();
+        if ($schema->hasCapability(TcaSchemaCapability::Language)) {
+            $languageField = $schema->getCapability(TcaSchemaCapability::Language)
+                ->getLanguageField()
+                ->getName();
+
+            if ($languageField !== '' && $this->language > 0) {
+                $urlParameters['overrideVals']['pages'][$languageField] = $this->language;
+            }
+        }
+
+        return [
+            'contextualEditUrl' => (string)$this->uriBuilder->buildUriFromRoute('record_edit_contextual', $urlParameters),
+            'fullPageEditUrl' => (string)$this->uriBuilder->buildUriFromRoute('record_edit', $urlParameters),
+        ];
+    }
+
+
+
+    /**
+     * Build the return URL pointing back to the page layout module.
+     *
+     * @throws RouteNotFoundException
+     */
+    protected function buildReturnUrl(): string
+    {
+        $parameters = [
+            'id' => $this->pageRecord['l10n_parent'] ?: $this->pageRecord['uid'],
+        ];
+
+
+        $parameters['viewMode'] = $this->viewMode;
+        $parameters['languages'] = $this->languages;
+
+        return (string)$this->uriBuilder->buildUriFromRoute('web_layout', $parameters);
     }
 
 
@@ -151,7 +247,8 @@ class PageLayoutEventListener
             $isEnabled = false;
         }
 
-        if (!$this->backendUser->doesUserHaveAccess($this->pageRecord, Permission::PAGE_EDIT) ||
+        // Page permissions are defined on the default language page, also for translations (same as Core page module)
+        if (!$this->backendUser->doesUserHaveAccess($this->pageContext->pageRecord, Permission::PAGE_EDIT) ||
             !$this->backendUser->check('tables_modify', 'pages')) {
             $isEnabled = false;
         }
@@ -185,19 +282,25 @@ class PageLayoutEventListener
         $configForPageType = $this->getConfigForCurrentPage();
 
         if (empty($configForPageType) === false) {
-            foreach ($configForPageType as $key => &$singleConfig) {
-                $singleConfig['fields'] = $this->prepareFieldsList($singleConfig['fields']);
+            try {
+                foreach ($configForPageType as $key => &$singleConfig) {
+                    $singleConfig['fields'] = $this->prepareFieldsList($singleConfig['fields']);
 
-                if ($singleConfig['fields'] === '') {
-                    unset($configForPageType[$key]);
-                    continue;
+                    if ($singleConfig['fields'] === '') {
+                        unset($configForPageType[$key]);
+                        continue;
+                    }
+
+                    $singleConfig['label'] = $this->getLanguageService()->sL($singleConfig['label'] ?? '');
+
+                    $this->processPreviewFields($singleConfig);
+
+                    $editUrls = $this->buildEditUrls($singleConfig['fields']);
+                    $singleConfig['contextualEditUrl'] = $editUrls['contextualEditUrl'];
+                    $singleConfig['fullPageEditUrl'] = $editUrls['fullPageEditUrl'];
                 }
-
-                if (str_starts_with($singleConfig['label'], 'LLL')) {
-                    $singleConfig['label'] = LocalizationUtility::translate($singleConfig['label']);
-                }
-
-                $this->processPreviewFields($singleConfig);
+            } catch (Exception $e) {
+                return [];
             }
 
             return $configForPageType;
@@ -215,22 +318,27 @@ class PageLayoutEventListener
      */
     protected function getConfigForCurrentPage(): array
     {
-        $pageTsConfig = BackendUtility::getPagesTSconfig($this->pageUid);
         $configForPageType = [];
 
-        if (
-            array_key_exists('mod.', $pageTsConfig) &&
-            is_array($pageTsConfig['mod.']) &&
-            array_key_exists('web_layout.', $pageTsConfig['mod.']) &&
-            is_array($pageTsConfig['mod.']['web_layout.']) &&
-            array_key_exists('PageTypes.', $pageTsConfig['mod.']['web_layout.'])
-        ) {
-            $quickeditConfig = $pageTsConfig['mod.']['web_layout.']['PageTypes.'];
+        try {
+            // TSconfig and its conditions are evaluated for the default language page, not the translation UID
+            $pageTsConfig = BackendUtility::getPagesTSconfig($this->pageContext->pageId);
+            if (
+                array_key_exists('mod.', $pageTsConfig) &&
+                is_array($pageTsConfig['mod.']) &&
+                array_key_exists('web_layout.', $pageTsConfig['mod.']) &&
+                is_array($pageTsConfig['mod.']['web_layout.']) &&
+                array_key_exists('PageTypes.', $pageTsConfig['mod.']['web_layout.'])
+            ) {
+                $quickeditConfig = $pageTsConfig['mod.']['web_layout.']['PageTypes.'];
 
-            if (is_array($quickeditConfig) && array_key_exists($this->pageRecord['doktype'] . '.', $quickeditConfig)) {
-                $configForPageType = $quickeditConfig[$this->pageRecord['doktype'] . '.']['config.'];
-                ksort($configForPageType);
+                if (is_array($quickeditConfig) && array_key_exists($this->pageRecord['doktype'] . '.', $quickeditConfig)) {
+                    $configForPageType = $quickeditConfig[$this->pageRecord['doktype'] . '.']['config.'];
+                    ksort($configForPageType);
+                }
             }
+        } catch (Exception $e) {
+            // Do nothing
         }
 
         return $configForPageType;
@@ -272,29 +380,34 @@ class PageLayoutEventListener
 
 
     /**
-     * @param $field string
+     * Fields marked as "exclude" in TCA need an explicit permission for non-admin users.
+     * Expects a field that is defined in TCA (see isFieldDefined()).
+     *
+     * @param string $field
      * @return bool
+     * @throws UndefinedSchemaException
      */
     protected function userHasAccessToField(string $field): bool
     {
-        return $field !== '' && (!array_key_exists('exclude', $GLOBALS['TCA']['pages']['columns'][$field]) ||
-                $GLOBALS['TCA']['pages']['columns'][$field]['exclude'] === 0 ||
-                $this->backendUser->check('non_exclude_fields', 'pages:' . $field));
+        return !$this->getPagesSchema()->getField($field)->supportsAccessControl()
+            || $this->backendUser->check('non_exclude_fields', 'pages:' . $field);
     }
 
 
 
     /**
+     * Fields with l10n_mode "exclude" can't be edited in translations.
+     * Expects a field that is defined in TCA (see isFieldDefined()).
+     *
      * @param string $field
      * @return bool
+     * @throws UndefinedSchemaException
      */
     protected function fieldIsAvailableForLanguage(string $field): bool
     {
         if ($this->language > 0) {
-            return $field !== '' && (
-                    !array_key_exists('l10n_mode', $GLOBALS['TCA']['pages']['columns'][$field]) ||
-                    $GLOBALS['TCA']['pages']['columns'][$field]['l10n_mode'] !== 'exclude'
-                );
+            return $this->getPagesSchema()->getField($field)->getTranslationBehaviour()
+                !== FieldTranslationBehaviour::Excluded;
         }
 
         return true;
@@ -306,6 +419,7 @@ class PageLayoutEventListener
      * Checks set previewFields and get the corresponding field labels and values for display in backend.
      *
      * @param $groupConfig array
+     * @throws UndefinedSchemaException
      */
     protected function processPreviewFields(array &$groupConfig): void
     {
@@ -325,20 +439,18 @@ class PageLayoutEventListener
                     $groupConfig['fieldValues'][$field]['value'] = BackendUtility::getProcessedValue(
                         'pages',
                         $field,
-                        $this->pageRecord[$field],
+                        $this->pageRecord[$field] ?? null,
                         0,
                         false,
                         false,
                         $this->pageUid
                     );
 
-                    $itemLabel = BackendUtility::getItemLabel('pages', $field);
+                    $schema = $this->getPagesSchema();
+                    $itemLabel = $schema->hasField($field) ? $schema->getField($field)->getLabel() : '';
+                    $itemLabel = $this->getLanguageService()->sL($itemLabel);
 
-                    if (str_starts_with($itemLabel, 'LLL')) {
-                        $itemLabel = LocalizationUtility::translate($itemLabel);
-                    }
-
-                    $groupConfig['fieldValues'][$field]['label'] = $itemLabel;
+                    $groupConfig['fieldValues'][$field]['label'] = $itemLabel ?: $field;
                 }
             }
         }
@@ -376,9 +488,27 @@ class PageLayoutEventListener
     /**
      * @param string $field
      * @return bool
+     * @throws UndefinedSchemaException
      */
     protected function isFieldDefined(string $field): bool
     {
-        return array_key_exists($field, $GLOBALS['TCA']['pages']['columns']);
+        return $field !== '' && $this->getPagesSchema()->hasField($field);
+    }
+
+
+
+    /**
+     * @throws UndefinedSchemaException
+     */
+    protected function getPagesSchema(): TcaSchema
+    {
+        return $this->tcaSchemaFactory->get('pages');
+    }
+
+
+
+    protected function getLanguageService(): LanguageService
+    {
+        return $GLOBALS['LANG'];
     }
 }

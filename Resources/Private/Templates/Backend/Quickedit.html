@@ -1,5 +1,3 @@
-{namespace be=TYPO3\CMS\Backend\ViewHelpers}
-
 <f:if condition="{config}">
     <f:render partial="QuickeditHeader" />
     <div class="quickedit__container {f:if(condition: isVisible, then: 'collapse show', else: 'collapse')}" id="quick-edit" data-page="{pageId}">
@@ -8,9 +6,14 @@
                 <div class="quickedit__group">
                     <div class="quickedit__label">{editConfig.label}</div>
 
-                    <be:link.editRecord table="pages" uid="{pageId}" fields="{editConfig.fields}" class="quickedit__edit-button btn btn-default" returnUrl="{f:be.uri(route: 'web_layout', parameters: '{id: originPageId, function: functionId, language: languageId}')}">
+                    <typo3-backend-contextual-record-edit-trigger
+                        url="{editConfig.contextualEditUrl}"
+                        edit-url="{editConfig.fullPageEditUrl}"
+                        class="quickedit__edit-button btn btn-default"
+                        title="{editConfig.label}"
+                    >
                         <core:icon identifier="actions-open" size="medium" />
-                    </be:link.editRecord>
+                    </typo3-backend-contextual-record-edit-trigger>
 
                     <f:if condition="{editConfig.previewFields}">
                         <div class="quickedit__field-value"
@@ -18,7 +21,7 @@
                              data-bs-placement="bottom"
                              data-bs-trigger="hover"
                              data-bs-toggle="popover"
-                             data-bs-content="{f:render(partial:'FieldValues', arguments:{editConfig:editConfig})}"
+                             data-bs-content="{f:render(partial:'FieldValues', arguments:{editConfig:editConfig}) -> f:format.htmlspecialchars()}"
                              data-bs-custom-class="quickedit-popover"
                         >
                             <f:translate key="LLL:EXT:quickedit/Resources/Private/Language/Backend.xlf:currentValues" />
